@@ -285,3 +285,49 @@ test('cover entrega via mensagem durável, limpa arquivos e permite novo pedido 
     assert.deepEqual(await readdir(join(directory, 'jobs')), []);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test('configuração interna mantém a pasta completa do cover', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'cover-keep-handler-'));
+  const reference = join(directory, 'voice.wav');
+  await writeFile(reference, 'reference');
+  const jobsRoot = join(directory, 'jobs');
+  const handler = createCoverHandler({
+    queue: new JobQueue(),
+    findVoice: async () => ({ referencePath: reference }),
+    voiceChannelFor: () => null,
+    sessions: new Map(), busyGuilds: new Set(), playWav: async () => {},
+    runtimeCheck: async () => {}, outputRoot: jobsRoot, keepFiles: true,
+    generate: async ({ directory: jobDirectory }) => {
+      const mp3 = join(jobDirectory, 'cover.mp3');
+      await writeFile(join(jobDirectory, 'vocals.wav'), 'vocals');
+      await writeFile(join(jobDirectory, 'instrumental.wav'), 'instrumental');
+      await writeFile(mp3, 'cover');
+      return { mp3 };
+    },
+  });
+  const interaction = {
+    id: 'keep', guild: { id: 'guild' }, user: { id: 'user' }, client: { user: {} },
+    attachmentSizeLimit: 1024,
+    options: {
+      getBoolean: (key) => key === 'autorizado',
+      getString: (key) => key === 'link' ? url : 'voice',
+      getAttachment: () => null,
+    },
+    deferReply: async () => {}, editReply: async () => {},
+    channel: {
+      isThread: () => false,
+      permissionsFor: () => ({ missing: () => [] }),
+      send: async () => ({ url: 'status-url', edit: async () => {} }),
+    },
+  };
+  try {
+    await handler(interaction);
+    const jobs = await readdir(jobsRoot);
+    assert.equal(jobs.length, 1);
+    assert.equal(await readFile(join(jobsRoot, jobs[0], 'vocals.wav'), 'utf8'), 'vocals');
+    assert.equal(await readFile(join(jobsRoot, jobs[0], 'instrumental.wav'), 'utf8'), 'instrumental');
+    assert.equal(await readFile(join(jobsRoot, jobs[0], 'cover.mp3'), 'utf8'), 'cover');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

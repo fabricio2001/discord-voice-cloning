@@ -16,6 +16,7 @@ export const coverCommand = new SlashCommandBuilder()
 export function createCoverHandler({ queue, findVoice, voiceChannelFor, sessions, busyGuilds, playWav,
   runtimeCheck = checkCoverRuntime, generate = runCover, download = downloadAttachment,
   outputRoot = resolve(process.env.COVER_OUTPUT_DIR || 'outputs/covers'),
+  keepFiles = /^(?:1|true|yes|sim)$/i.test(process.env.COVER_KEEP_FILES?.trim() ?? ''),
   operations = new OperationRegistry(),
 }) {
   const pendingGuilds = new Set();
@@ -128,7 +129,9 @@ export function createCoverHandler({ queue, findVoice, voiceChannelFor, sessions
         await interaction.editReply('Não foi possível concluir o cover. Veja a mensagem de andamento no canal.').catch(() => {});
       } else throw error;
     } finally {
-      if (directory) await rm(directory, { recursive: true, force: true }).catch((error) => console.error('[cover cleanup]', error));
+      if (directory && keepFiles) console.log(`[cover] arquivos mantidos em ${directory}`);
+      else if (directory) await rm(directory, { recursive: true, force: true })
+        .catch((error) => console.error('[cover cleanup]', error));
       if (task) operations.finish(task);
       pendingGuilds.delete(guildId);
     }
