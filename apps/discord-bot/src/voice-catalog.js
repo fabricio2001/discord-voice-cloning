@@ -134,7 +134,14 @@ export async function listVoices(voicesRoot, guildId) {
   for (const filename of files.filter((name) => name.endsWith('.json'))) {
     try {
       const voice = JSON.parse(await readFile(join(guildRoot, filename), 'utf8'));
-      if (voice.guildId === guildId) voices.push(voice);
+      if (voice.guildId === guildId) {
+        voices.push({
+          ...voice,
+          // Resolve from the current catalog root so moving the project does not
+          // leave references pointing at an obsolete absolute directory.
+          referencePath: voiceReferencePath(voicesRoot, guildId, voice.id),
+        });
+      }
     } catch {
       // Ignore incomplete/corrupt catalog entries and keep the other voices usable.
     }
@@ -154,13 +161,13 @@ export async function saveVoice(voicesRoot, guildId, recording, createdBy) {
     userId: recording.userId,
     username: recording.username,
     displayName: recording.displayName,
-    referencePath,
+    referenceFile: basename(referencePath),
     sourceRecording: relative(resolve(voicesRoot, '..'), recording.filePath).split(sep).join('/'),
     createdAt: new Date().toISOString(),
     createdBy,
   };
   await writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
-  return metadata;
+  return { ...metadata, referencePath };
 }
 
 export async function findVoice(voicesRoot, guildId, id) {

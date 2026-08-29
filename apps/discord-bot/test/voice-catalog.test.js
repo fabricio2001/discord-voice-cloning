@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -37,11 +37,27 @@ test('catálogo encontra gravações por servidor e persiste uma voz', async () 
     assert.equal(recordings[0].usableForCloning, true);
     assert.equal((await findRecording(recordingsRoot, '123', recordings[0].key))?.userId, '456');
 
-    await saveVoice(voicesRoot, '123', recordings[0], { userId: '789', username: 'mod' });
+    const saved = await saveVoice(
+      voicesRoot, '123', recordings[0], { userId: '789', username: 'mod' },
+    );
     const voices = await listVoices(voicesRoot, '123');
     assert.equal(voices.length, 1);
     assert.equal(voices[0].displayName, 'Pessoa');
     assert.equal(voices[0].createdBy.userId, '789');
+    assert.equal(saved.referencePath, join(voicesRoot, '123', '456.wav'));
+    assert.equal(voices[0].referencePath, join(voicesRoot, '123', '456.wav'));
+
+    const persisted = JSON.parse(await readFile(join(voicesRoot, '123', '456.json'), 'utf8'));
+    assert.equal(persisted.referenceFile, '456.wav');
+    assert.equal('referencePath' in persisted, false);
+
+    // Legacy catalogs may contain an absolute path from before the project moved.
+    persisted.referencePath = 'C:\\antiga\\pasta\\voices\\456.wav';
+    await writeFile(join(voicesRoot, '123', '456.json'), JSON.stringify(persisted));
+    assert.equal(
+      (await listVoices(voicesRoot, '123'))[0].referencePath,
+      join(voicesRoot, '123', '456.wav'),
+    );
 
     const deleted = await deleteRecordings(recordingsRoot, '123', 'pessoa', '456');
     assert.deepEqual(deleted, { files: 1, sessions: 1 });
