@@ -1,0 +1,44 @@
+# Segredos e configurações locais
+.env
+.env.*
+!.env.example
+
+# Ambientes e caches Python
+/.venv/
+/.cover-venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Dependências Node.js
+**/node_modules/
+
+# Motores e modelos baixados em tempo de execução
+/engines/
+/models/
+
+# Dados privados e artefatos gerados
+**/recordings/
+**/voices/
+**/outputs/
+**/.tmp/
+**/.verify/
+*.log
+
+# Áudio local (gravações, referências e resultados)
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.opus
+*.m4a
+*.aac
+*.webm
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
