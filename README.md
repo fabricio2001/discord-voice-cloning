@@ -4,8 +4,9 @@ Monorepo de um bot do Discord que grava participantes separadamente, mantém um
 catálogo local de referências autorizadas, sintetiza fala e gera covers usando
 modelos executados localmente.
 
-> Este projeto deve permanecer privado. Gravações e referências de voz são dados
-> pessoais sensíveis: use somente vozes próprias ou com autorização explícita.
+> O código deste projeto é público, mas gravações e referências de voz são dados
+> pessoais sensíveis e nunca devem ser versionados. Use somente vozes próprias ou
+> com autorização explícita.
 
 ## Estrutura
 
@@ -63,4 +64,3 @@ Mais detalhes do bot estão em [apps/discord-bot/README.md](apps/discord-bot/REA
 O instalador baixa o Seed-VC em uma revisão fixada, sem versioná-lo neste
 repositório. Seed-VC, Demucs, Chatterbox, FFmpeg e os modelos utilizados possuem
 licenças próprias, que devem ser verificadas antes de qualquer redistribuição.
-
