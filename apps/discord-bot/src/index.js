@@ -22,12 +22,13 @@ import {
   saveVoice,
   voiceReferencePath,
 } from './voice-catalog.js';
-import { playWav, prepareVoice, removeSynthesis, synthesizeVoice } from './voice-cloning.js';
+import { playPcm, playWav, prepareVoice, removeSynthesis, synthesizeVoice } from './voice-cloning.js';
 import { JobQueue } from './job-queue.js';
 import { coverCommand, createCoverHandler } from './cover-command.js';
 import { stopCoverProcesses } from './cover.js';
 import { OperationRegistry } from './operations.js';
 import { botControlCommands, createBotControlHandler } from './bot-control.js';
+import { audioPlaybackCommand, createAudioPlaybackHandler } from './audio-playback-command.js';
 
 const { DISCORD_TOKEN, DISCORD_CLIENT_ID } = process.env;
 const configuredGuildId = process.env.DISCORD_GUILD_ID?.trim();
@@ -48,7 +49,7 @@ const sessions = new Map();
 const busyGuilds = new Set();
 const gpuQueue = new JobQueue();
 const operations = new OperationRegistry();
-const BOT_BUILD = '2026-08-27.bot-control.1';
+const BOT_BUILD = '2026-08-29.audio-playback.1';
 const handleBotControl = createBotControlHandler({
   operations, queue: gpuQueue, sessions, canManage: canManageRecordings, build: BOT_BUILD,
 });
@@ -58,10 +59,15 @@ const handleCover = createCoverHandler({
   voiceChannelFor: memberVoiceChannel,
   sessions, busyGuilds, playWav, operations,
 });
+const handleAudioPlayback = createAudioPlaybackHandler({
+  voiceChannelFor: memberVoiceChannel,
+  sessions, busyGuilds, playPcm, operations,
+});
 
 const commands = [
   ...botControlCommands,
   coverCommand,
+  audioPlaybackCommand,
   new SlashCommandBuilder()
     .setName('vr-gravar')
     .setDescription('Inicia a gravação individual dos participantes da sua call'),
@@ -252,6 +258,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (await handleBotControl(interaction)) return;
     if (interaction.commandName === 'vr-cover') {
       await handleCover(interaction);
+      return;
+    }
+    if (interaction.commandName === 'vr-tocar') {
+      await handleAudioPlayback(interaction);
       return;
     }
 

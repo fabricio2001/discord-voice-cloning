@@ -93,7 +93,7 @@ export async function synthesizeVoice(referencePath, text, outputPath, onLine, o
   ], onLine, options);
 }
 
-export async function playWav({ guild, voiceChannel, wavPath, existingConnection, signal }) {
+async function playRawPcm({ guild, voiceChannel, path, start, existingConnection, signal }) {
   signal?.throwIfAborted();
   const ownsConnection = !existingConnection;
   const connection = existingConnection ?? joinVoiceChannel({
@@ -110,8 +110,7 @@ export async function playWav({ guild, voiceChannel, wavPath, existingConnection
     await entersState(connection, VoiceConnectionStatus.Ready, deadline(20_000));
     signal?.throwIfAborted();
     player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
-    // Python emits 48 kHz stereo signed 16-bit PCM with a standard 44-byte WAV header.
-    pcm = createReadStream(wavPath, { start: 44 });
+    pcm = createReadStream(path, { start });
     const resource = createAudioResource(pcm, { inputType: StreamType.Raw });
     subscription = connection.subscribe(player);
     player.play(resource);
@@ -128,6 +127,15 @@ export async function playWav({ guild, voiceChannel, wavPath, existingConnection
     pcm?.destroy();
     if (ownsConnection && connection.state.status !== VoiceConnectionStatus.Destroyed) connection.destroy();
   }
+}
+
+export function playWav({ guild, voiceChannel, wavPath, existingConnection, signal }) {
+  // Python emits a standard 44-byte WAV header followed by 48 kHz stereo PCM.
+  return playRawPcm({ guild, voiceChannel, path: wavPath, start: 44, existingConnection, signal });
+}
+
+export function playPcm({ guild, voiceChannel, pcmPath, existingConnection, signal }) {
+  return playRawPcm({ guild, voiceChannel, path: pcmPath, start: 0, existingConnection, signal });
 }
 
 export async function removeSynthesis(path) {

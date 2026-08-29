@@ -3,6 +3,7 @@ import { MessageFlags } from 'discord.js';
 const slowCommands = new Set([
   'vr-parar', 'vr-listar-gravacoes', 'vr-listar-vozes',
   'vr-limpar-gravacoes', 'vr-clonar-voz', 'vr-tts',
+  'vr-tocar',
   'vr-cancelar-processo',
 ]);
 

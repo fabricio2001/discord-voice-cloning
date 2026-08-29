@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/recorder.js && node --check src/voice-catalog.js && node --check src/voice-cloning.js && node --check src/cover.js && node --check src/cover-command.js && node --check src/job-queue.js && node --check src/resilient-opus-decoder.js && node --check src/interaction-response.js && node --check src/operations.js && node --check src/process-control.js && node --check src/bot-control.js",
+    "check": "node --check src/index.js && node --check src/recorder.js && node --check src/voice-catalog.js && node --check src/voice-cloning.js && node --check src/cover.js && node --check src/cover-command.js && node --check src/audio-playback-command.js && node --check src/job-queue.js && node --check src/resilient-opus-decoder.js && node --check src/interaction-response.js && node --check src/operations.js && node --check src/process-control.js && node --check src/bot-control.js",
     "test": "node --test --test-isolation=none"
   },
   "engines": {

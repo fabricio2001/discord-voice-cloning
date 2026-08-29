@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MessageFlags } from 'discord.js';
 import { acknowledgeCommand, replyToCommand } from '../src/interaction-response.js';
 
-for (const name of ['vr-parar', 'vr-listar-gravacoes', 'vr-listar-vozes', 'vr-limpar-gravacoes', 'vr-clonar-voz', 'vr-tts']) {
+for (const name of ['vr-parar', 'vr-listar-gravacoes', 'vr-listar-vozes', 'vr-limpar-gravacoes', 'vr-clonar-voz', 'vr-tts', 'vr-tocar']) {
   test(`${name} confirma primeiro e edita a resposta sem segundo reply`, async () => {
     const calls = [];
     const interaction = {

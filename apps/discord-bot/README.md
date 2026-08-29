@@ -45,6 +45,8 @@ pode ser usado no lugar dele para reduzir o consumo de CPU.
   segurança, requer a permissão **Gerenciar canais**.
 - `/vr-listar-vozes` mostra o catálogo de vozes prontas.
 - Entre na call e use `/vr-tts voz:... texto:...` para o bot sintetizar e falar.
+- `/vr-tocar arquivo:...` reproduz na call um áudio enviado como anexo. Aceita
+  MP3, WAV, FLAC, OGG, OPUS, M4A, AAC e WEBM, com até 25 MiB e 10 minutos.
 - `/vr-cover voz:... autorizado:true link:...` gera um cover de um vídeo do YouTube.
 - No lugar de `link`, use `arquivo` para enviar uma música; `tocar:true` também reproduz o resultado na call.
 - `/vr-limpar-gravacoes` apaga gravações finalizadas por dia, sessão, pessoa,
@@ -55,6 +57,14 @@ com **Gerenciar canais** pode encerrá-la. Os arquivos ficam em
 `recordings/<servidor>/<data-hora>/`, acompanhados de um `manifest.json`.
 As referências preparadas ficam em `voices/<servidor>/`. O áudio temporário de
 TTS é apagado logo depois da reprodução.
+
+### Reprodução de arquivos
+
+Use `/vr-tocar arquivo:...` dentro de uma call para reproduzir um áudio enviado
+como anexo. O arquivo é baixado apenas para uma pasta temporária, convertido para
+PCM de 48 kHz e removido ao terminar ou falhar. A reprodução aceita até 25 MiB e
+é limitada aos primeiros 10 minutos. O FFmpeg instalado por `instalar-cover.ps1`
+é reutilizado; alternativamente, configure `FFMPEG_PATH` no `.env`.
 
 ### Status e cancelamento
 
