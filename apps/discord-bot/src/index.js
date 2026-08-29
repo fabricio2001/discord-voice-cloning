@@ -49,7 +49,7 @@ const sessions = new Map();
 const busyGuilds = new Set();
 const gpuQueue = new JobQueue();
 const operations = new OperationRegistry();
-const BOT_BUILD = '2026-08-29.persistent-voice.1';
+const BOT_BUILD = '2026-08-29.recording-reconnect.1';
 const handleBotControl = createBotControlHandler({
   operations, queue: gpuQueue, sessions, canManage: canManageRecordings, build: BOT_BUILD,
 });
@@ -299,6 +299,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         textChannel: interaction.channel,
         outputDir,
         startedBy: { userId: interaction.user.id, username: interaction.user.username },
+        onConnectionLost: async (lostRecorder) => {
+          if (sessions.get(interaction.guild.id) !== lostRecorder) return;
+          sessions.delete(interaction.guild.id);
+          const manifest = await lostRecorder.stop({
+            userId: null,
+            username: 'desconexão de voz',
+          });
+          await writeFile(join(lostRecorder.outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+          await lostRecorder.textChannel.send(
+            '⚠️ **A conexão de voz caiu e não pôde ser recuperada.** A gravação foi encerrada e os arquivos capturados foram salvos.',
+          ).catch((error) => console.error(`Falha ao avisar sobre desconexão: ${error.message}`));
+        },
       });
       await recorder.start();
       sessions.set(interaction.guild.id, recorder);

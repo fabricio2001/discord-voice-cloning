@@ -37,17 +37,41 @@ function wavHeader(dataSize) {
   return header;
 }
 
+export async function recoverVoiceConnection(connection, {
+  waitForState = entersState,
+  reconnectTimeout = 5_000,
+  readyTimeout = 20_000,
+} = {}) {
+  const cancellation = new AbortController();
+  const reconnectSignal = AbortSignal.any([
+    cancellation.signal,
+    AbortSignal.timeout(reconnectTimeout),
+  ]);
+  try {
+    await Promise.race([
+      waitForState(connection, VoiceConnectionStatus.Signalling, reconnectSignal),
+      waitForState(connection, VoiceConnectionStatus.Connecting, reconnectSignal),
+    ]);
+  } finally {
+    // Cancel the losing state waiter immediately so it does not retain listeners/timers.
+    cancellation.abort();
+  }
+  await waitForState(connection, VoiceConnectionStatus.Ready, readyTimeout);
+}
+
 export class GuildRecorder {
-  constructor({ guild, voiceChannel, textChannel, outputDir, startedBy }) {
+  constructor({ guild, voiceChannel, textChannel, outputDir, startedBy, onConnectionLost }) {
     this.guild = guild;
     this.voiceChannel = voiceChannel;
     this.textChannel = textChannel;
     this.outputDir = outputDir;
     this.startedBy = startedBy;
+    this.onConnectionLost = onConnectionLost;
     this.startedAt = new Date();
     this.users = new Map();
     this.pendingUsers = new Set();
     this.stopping = false;
+    this.recovering = false;
     mkdirSync(outputDir, { recursive: true });
   }
 
@@ -61,12 +85,37 @@ export class GuildRecorder {
     });
 
     await entersState(this.connection, VoiceConnectionStatus.Ready, 20_000);
+    this.onDisconnected = () => {
+      void this.recoverConnection().catch((error) => {
+        console.error(`Falha inesperada ao recuperar a call em ${this.guild.name}: ${error.message}`);
+      });
+    };
+    this.connection.on(VoiceConnectionStatus.Disconnected, this.onDisconnected);
     this.onSpeakingStart = (userId) => this.capture(userId).catch((error) => {
       this.pendingUsers.delete(userId);
       console.error(`Falha ao iniciar captura de ${userId}: ${error.message}`);
     });
     this.connection.receiver.speaking.on('start', this.onSpeakingStart);
     console.log(`Gravação iniciada em ${this.guild.name} / ${this.voiceChannel.name}.`);
+  }
+
+  async recoverConnection() {
+    if (this.stopping || this.recovering) return;
+    this.recovering = true;
+    console.warn(`Conexão de voz interrompida em ${this.guild.name}; tentando reconectar.`);
+    try {
+      // The voice library may resume the old session or start a fresh signalling
+      // exchange. Accept either route, then require a fully ready connection.
+      await recoverVoiceConnection(this.connection);
+      console.log(`Conexão de voz recuperada em ${this.guild.name}; gravação continua.`);
+    } catch (error) {
+      if (!this.stopping) {
+        console.error(`Não foi possível recuperar a conexão de voz em ${this.guild.name}: ${error.message}`);
+        await this.onConnectionLost?.(this, error);
+      }
+    } finally {
+      this.recovering = false;
+    }
   }
 
   async capture(userId) {
@@ -140,10 +189,11 @@ export class GuildRecorder {
   async stop(stoppedBy) {
     if (this.stopping) return;
     this.stopping = true;
+    this.connection.off(VoiceConnectionStatus.Disconnected, this.onDisconnected);
     this.connection.receiver.speaking.off('start', this.onSpeakingStart);
 
     const stoppedAt = new Date();
-    this.connection.destroy();
+    if (this.connection.state.status !== VoiceConnectionStatus.Destroyed) this.connection.destroy();
     await Promise.all([...this.users.values()].map((entry) => this.finishUser(entry)));
     console.log(`Gravação encerrada em ${this.guild.name}; ${this.users.size} participante(s).`);
 

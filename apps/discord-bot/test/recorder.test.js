@@ -5,7 +5,25 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
-import { GuildRecorder } from '../src/recorder.js';
+import { GuildRecorder, recoverVoiceConnection } from '../src/recorder.js';
+
+test('recuperação de voz aceita nova sinalização e aguarda conexão pronta', async () => {
+  const calls = [];
+  const connection = {};
+  const waitForState = async (target, status, timeoutOrSignal) => {
+    assert.equal(target, connection);
+    calls.push(status);
+    if (status === 'connecting') {
+      await new Promise((resolve, reject) => {
+        timeoutOrSignal.addEventListener('abort', () => reject(timeoutOrSignal.reason), { once: true });
+      });
+    }
+    return target;
+  };
+
+  await recoverVoiceConnection(connection, { waitForState });
+  assert.deepEqual(calls.sort(), ['connecting', 'ready', 'signalling']);
+});
 
 test('finishUser fecha o arquivo e finaliza o cabeçalho WAV', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'vr-recorder-'));
