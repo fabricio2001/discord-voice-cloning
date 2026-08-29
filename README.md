@@ -28,7 +28,7 @@ arquivos `.env` são mantidos somente na máquina e não entram no Git.
 Requisitos principais:
 
 - Windows e PowerShell;
-- Node.js 22 ou superior;
+- Node.js 24 ou superior;
 - Python 3.12;
 - Git;
 - GPU NVIDIA compatível, recomendada para os modelos locais.
