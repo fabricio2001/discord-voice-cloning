@@ -93,6 +93,12 @@ export async function synthesizeVoice(referencePath, text, outputPath, onLine, o
   ], onLine, options);
 }
 
+export function shouldDestroyPlaybackConnection({ ownsConnection, completed }) {
+  // Keep a healthy connection after playback so the bot remains in the call.
+  // A connection created by this playback is only discarded when setup/playback fails.
+  return ownsConnection && !completed;
+}
+
 async function playRawPcm({ guild, voiceChannel, path, start, existingConnection, signal }) {
   signal?.throwIfAborted();
   const ownsConnection = !existingConnection;
@@ -105,6 +111,7 @@ async function playRawPcm({ guild, voiceChannel, path, start, existingConnection
   });
 
   let player, pcm, subscription;
+  let completed = false;
   const deadline = (ms) => signal ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : ms;
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, deadline(20_000));
@@ -118,6 +125,7 @@ async function playRawPcm({ guild, voiceChannel, path, start, existingConnection
     await entersState(player, AudioPlayerStatus.Playing, deadline(20_000));
     await entersState(player, AudioPlayerStatus.Idle, deadline(15 * 60_000));
     signal?.throwIfAborted();
+    completed = true;
   } catch (error) {
     if (signal?.aborted) throw signal.reason;
     throw error;
@@ -125,7 +133,8 @@ async function playRawPcm({ guild, voiceChannel, path, start, existingConnection
     subscription?.unsubscribe();
     player?.stop(true);
     pcm?.destroy();
-    if (ownsConnection && connection.state.status !== VoiceConnectionStatus.Destroyed) connection.destroy();
+    if (shouldDestroyPlaybackConnection({ ownsConnection, completed })
+      && connection.state.status !== VoiceConnectionStatus.Destroyed) connection.destroy();
   }
 }
 

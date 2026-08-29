@@ -49,7 +49,7 @@ const sessions = new Map();
 const busyGuilds = new Set();
 const gpuQueue = new JobQueue();
 const operations = new OperationRegistry();
-const BOT_BUILD = '2026-08-29.audio-playback.1';
+const BOT_BUILD = '2026-08-29.persistent-voice.1';
 const handleBotControl = createBotControlHandler({
   operations, queue: gpuQueue, sessions, canManage: canManageRecordings, build: BOT_BUILD,
 });

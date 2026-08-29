@@ -7,7 +7,7 @@ import { JobQueue } from '../src/job-queue.js';
 import { createBotControlHandler, botControlCommands } from '../src/bot-control.js';
 import { bindProcessCancellation } from '../src/process-control.js';
 import { acknowledgeCommand } from '../src/interaction-response.js';
-import { playWav, prepareVoice } from '../src/voice-cloning.js';
+import { playWav, prepareVoice, shouldDestroyPlaybackConnection } from '../src/voice-cloning.js';
 
 function fixture(commandName = 'vr-cancelar-processo', userId = 'owner') {
   const operations = new OperationRegistry();
@@ -164,6 +164,12 @@ test('cancelar espera de conexão do TTS preserva conexão usada pela gravação
   controller.abort(new Error('cancelled'));
   await assert.rejects(playback, /cancelled/);
   assert.equal(connection.listenerCount('ready'), 0);
+});
+
+test('reprodução concluída mantém o bot na call e falha descarta conexão própria', () => {
+  assert.equal(shouldDestroyPlaybackConnection({ ownsConnection: true, completed: true }), false);
+  assert.equal(shouldDestroyPlaybackConnection({ ownsConnection: true, completed: false }), true);
+  assert.equal(shouldDestroyPlaybackConnection({ ownsConnection: false, completed: false }), false);
 });
 
 test('clonagem e reprodução já canceladas não iniciam trabalho', async () => {
